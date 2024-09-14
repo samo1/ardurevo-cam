@@ -23,10 +23,7 @@
 #include "soc/soc.h" //disable brownout problems
 #include "soc/rtc_cntl_reg.h"  //disable brownout problems
 #include "esp_http_server.h"
-
-//Replace with your network credentials
-const char *ssid = "REPLACE_WITH_YOUR_SSID";
-const char *password = "REPLACE_WITH_YOUR_PASSWORD";
+#include "secrets.h"
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 
@@ -202,6 +199,8 @@ void startCameraServer() {
 void setup() {
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
+    pinMode(33, OUTPUT);
+
     Serial.begin(115200);
     Serial.setDebugOutput(false);
 
@@ -253,10 +252,12 @@ void setup() {
     Serial.println("WiFi connected");
 
     Serial.print("Camera Stream Ready! Go to: http://");
-    Serial.print(WiFi.localIP());
+    Serial.println(WiFi.localIP());
 
     // Start streaming web server
     startCameraServer();
+
+    digitalWrite(33, LOW);
 }
 
 void loop() {
