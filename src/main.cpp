@@ -143,6 +143,9 @@ void setup() {
     Serial.print("Camera Ready! Use 'http://");
     Serial.print(WiFi.localIP());
     Serial.println("' to connect");
+
+    pinMode(33, OUTPUT);
+    digitalWrite(33, LOW);
 }
 
 void loop() {
