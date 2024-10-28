@@ -1,13 +1,43 @@
+#include "Arduino.h"
+#include <EEPROM.h>
 #include <esp_camera.h>
+#include <FS.h>
+#include <SD_MMC.h>
 #include <WiFi.h>
 
 #define CAMERA_MODEL_AI_THINKER
+
 #include "camera_pins.h"
+
+#define FLASHLIGHT_PIN 4
+#define RED_LED_PIN 33
+#define GPIO12_PIN 12
+
+volatile unsigned long pulseBegin = micros();
+volatile unsigned long pulseEnd = micros();
+volatile unsigned long pulseDuration = 0;
+
+static void gpio12PinInterrupt() {
+    if (digitalRead(GPIO12_PIN) == HIGH) {
+        pulseBegin = micros();
+    } else {
+        pulseEnd = micros();
+        pulseDuration = pulseEnd - pulseBegin;
+    }
+}
 
 void setup() {
     Serial.begin(115200);
     Serial.setDebugOutput(true);
     Serial.println();
+
+    pinMode(FLASHLIGHT_PIN, OUTPUT);
+    pinMode(RED_LED_PIN, OUTPUT);
+    pinMode(GPIO12_PIN, INPUT);
+
+    digitalWrite(FLASHLIGHT_PIN, LOW); // Turn off flashlight LED
+
+    attachInterrupt(GPIO12_PIN, gpio12PinInterrupt, CHANGE);
 
     camera_config_t config;
     config.ledc_channel = LEDC_CHANNEL_0;
@@ -51,13 +81,53 @@ void setup() {
         s->set_saturation(s, -2);  // lower the saturation
     }
 
-    // TODO: initialize SD Card reader in 1-bit mode
-    // TODO: set input pin GPIO12
-    // TODO: set interrupt to get PWM input
-    // TODO: switch Red LED on button click
+    if (!SD_MMC.begin("/sdcard", false)) {
+        Serial.println("SD Card Mount Failed");
+        return;
+    }
+
+    uint8_t cardType = SD_MMC.cardType();
+    if (cardType == CARD_NONE) {
+        Serial.println("No SD Card attached");
+        return;
+    }
+
+    EEPROM.begin(1);
+
+    digitalWrite(RED_LED_PIN, HIGH);
+
 }
 
 void loop() {
-    // Do nothing. Everything is done in another task by the web server
-    delay(10000);
+    unsigned long d = pulseDuration;
+    if (d < 1400) {
+        digitalWrite(RED_LED_PIN, HIGH);
+    } else {
+        digitalWrite(RED_LED_PIN, LOW);
+
+        camera_fb_t *fb = esp_camera_fb_get();
+        if (!fb) {
+            Serial.println("Camera capture failed");
+            delay(1000);
+            return;
+        }
+
+        uint8_t pictureNumber = EEPROM.read(0) + 1;
+        String path = "/picture" + String(pictureNumber) + ".jpg";
+
+        fs::FS &fs = SD_MMC;
+        File file = fs.open(path.c_str(), FILE_WRITE);
+        if (!file) {
+            Serial.println("Failed to open file in writing mode");
+        } else {
+            file.write(fb->buf, fb->len);
+            Serial.printf("Saved file to path: %s\n", path.c_str());
+            EEPROM.write(0, pictureNumber);
+            EEPROM.commit();
+        }
+        file.close();
+        esp_camera_fb_return(fb);
+    }
+
+    delay(1000);
 }
