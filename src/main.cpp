@@ -113,8 +113,8 @@ void loop() {
             Serial.printf("Saved file to path: %s\n", path.c_str());
             EEPROM.write(0, pictureNumber);
             EEPROM.commit();
+            file.close();
         }
-        file.close();
         esp_camera_fb_return(fb);
     }
 
