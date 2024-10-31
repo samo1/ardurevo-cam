@@ -72,7 +72,7 @@ void setup() {
     s->set_vflip(s, 1);
     s->set_hmirror(s, 2);
 
-    if (!SD_MMC.begin("/sdcard", false)) {
+    if (!SD_MMC.begin("/sdcard", true)) {
         Serial.println("SD Card Mount Failed");
         return;
     }
