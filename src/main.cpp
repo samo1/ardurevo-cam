@@ -9,7 +9,6 @@
 
 #include "camera_pins.h"
 
-#define FLASHLIGHT_PIN 4
 #define RED_LED_PIN 33
 #define GPIO12_PIN 12
 
@@ -31,11 +30,8 @@ void setup() {
     Serial.setDebugOutput(true);
     Serial.println();
 
-    pinMode(FLASHLIGHT_PIN, OUTPUT);
     pinMode(RED_LED_PIN, OUTPUT);
     pinMode(GPIO12_PIN, INPUT);
-
-    digitalWrite(FLASHLIGHT_PIN, LOW); // Turn off flashlight LED
 
     attachInterrupt(GPIO12_PIN, gpio12PinInterrupt, CHANGE);
 
@@ -66,7 +62,6 @@ void setup() {
     config.jpeg_quality = 10;
     config.fb_count = 2;
 
-    // camera init
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
         Serial.printf("Camera init failed with error 0x%x", err);
@@ -74,12 +69,8 @@ void setup() {
     }
 
     sensor_t *s = esp_camera_sensor_get();
-    // initial sensors are flipped vertically and colors are a bit saturated
-    if (s->id.PID == OV3660_PID) {
-        s->set_vflip(s, 1);        // flip it back
-        s->set_brightness(s, 1);   // up the brightness just a bit
-        s->set_saturation(s, -2);  // lower the saturation
-    }
+    s->set_vflip(s, 1);
+    s->set_hmirror(s, 2);
 
     if (!SD_MMC.begin("/sdcard", false)) {
         Serial.println("SD Card Mount Failed");
@@ -95,7 +86,6 @@ void setup() {
     EEPROM.begin(1);
 
     digitalWrite(RED_LED_PIN, HIGH);
-
 }
 
 void loop() {
