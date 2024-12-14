@@ -11,6 +11,9 @@
 #define RED_LED_PIN 33
 #define GPIO12_PIN 12
 
+#define EEPROM_SIZE 8
+#define PICTURENR_ADDRESS 4
+
 volatile unsigned long pulseBegin = micros();
 volatile unsigned long pulseEnd = micros();
 volatile unsigned long pulseDuration = 0;
@@ -82,7 +85,7 @@ void setup() {
         return;
     }
 
-    EEPROM.begin(1);
+    EEPROM.begin(EEPROM_SIZE);
 
     digitalWrite(RED_LED_PIN, HIGH);
 }
@@ -101,8 +104,8 @@ void loop() {
             return;
         }
 
-        uint8_t pictureNumber = EEPROM.read(0) + 1;
-        String path = "/picture" + String(pictureNumber) + ".jpg";
+        uint32_t pictureNumber = EEPROM.readULong(PICTURENR_ADDRESS) + 1;
+        String path = "/photo_" + String(pictureNumber) + ".jpg";
 
         fs::FS &fs = SD_MMC;
         File file = fs.open(path.c_str(), FILE_WRITE);
@@ -111,7 +114,7 @@ void loop() {
         } else {
             file.write(fb->buf, fb->len);
             Serial.printf("Saved file to path: %s\n", path.c_str());
-            EEPROM.write(0, pictureNumber);
+            EEPROM.writeULong(PICTURENR_ADDRESS, pictureNumber);
             EEPROM.commit();
             file.close();
         }
